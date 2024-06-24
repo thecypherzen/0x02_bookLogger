@@ -3,7 +3,6 @@
 const ui = new UI();
 const db = new Storage();
 
-
 // reload books from storage
 document.addEventListener("DOMContentLoaded", (e) => {
     ui.reload(db);
