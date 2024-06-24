@@ -33,7 +33,9 @@ form.onsubmit = (e) => {
 
 // handle delete click event
 bookList.onclick = function (e){
+    if (Array.from(e.target.classList).includes("delete")){
+	db.deleteBook(e.target.parentElement.parentElement.id);
+	ui.deleteBook(e.target);
+    }
     e.preventDefault();
-    db.deleteBook(e.target.parentElement.parentElement.id);
-    ui.deleteBook(e.target);
 }

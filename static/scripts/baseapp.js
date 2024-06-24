@@ -102,11 +102,8 @@ UI.prototype.clearFields = function() {
 
 // delete book from UI
 UI.prototype.deleteBook = function(target){
-    if (Array.from(target.classList).includes("delete")){
-	target.parentElement.parentElement.remove();
-	this.alert("Book deleted successfully", "alert-success");
-    }
-
+    target.parentElement.parentElement.remove();
+    this.alert("Book deleted successfully", "alert-success");
 }
 
 
