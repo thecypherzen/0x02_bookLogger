@@ -1,7 +1,7 @@
 // Handles actual catalogue logic
 
-const ui = new UI();
 const db = new Storage();
+const ui = new UI(db);
 
 // reload books from storage
 document.addEventListener("DOMContentLoaded", (e) => {
@@ -22,7 +22,7 @@ form.onsubmit = (e) => {
 	const book = new Book(title, author, isbn, date);
 	db.add(book)
 	db.save();
-	ui.addBook(book, true);
+	ui.addBook(book);
 	ui.clearFields();
     } else {
 	ui.alert("Error, some values are missing", "alert-error");
@@ -37,4 +37,15 @@ bookList.onclick = function (e){
 	ui.deleteBook(e.target);
     }
     e.preventDefault();
+}
+
+
+// handle next/prev page click
+next.onclick = function(e){
+    ui.loadNextPage(true);
+}
+
+// handle prev page load
+prev.onclick = function(e){
+    ui.loadNextPage(false);
 }

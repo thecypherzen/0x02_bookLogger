@@ -4,32 +4,43 @@
 const form = document.getElementById("book-form");
 const bookBtn = document.getElementById("book-btn");
 const bookList = document.getElementById("book-list");
+const pageInfo = document.querySelector(".page-info");
+const prev = document.getElementById("prev");
+const next = document.getElementById("next");
 
 
-function pageIterator(arr, size=4){
+const pageSize = 6;
+
+// page Iterator function
+function pageIterator(arr, size=4) {
     let page = 0;
     let idx = 0;
 
     return {
-        next: function(){
+        next: function() {
             return idx < arr.length ?
                 { value: {
                     page: ++page,
-                    content: arr.slice(idx, idx+=size)
+		    pageCount: arr.length/size +
+			(arr.length % size ? 1 : 0),
+                    content: arr.slice(idx, idx+=size),
+		    end: idx > size
                 }, done: false} :
-            { content: null, done: true }
+            { done: true }
         },
-        prev: function(){
+        prev: function() {
             return --page > 0 ?
                 { value: {
                     page: page,
-                    content: arr.slice(idx-=(2 * size), idx += size)
+		    pageCount: arr.length/size +
+			(arr.length % size ? 1 : 0),
+                    content: arr.slice(idx-=(2 * size), idx += size),
+		    end: idx > size
                 }, done: false } :
-            { content: null, done: true }
+            { done: true }
         }
     }
 }
-
 
 
 /*
@@ -53,16 +64,9 @@ function Storage(){
     } else {
 	this.books = JSON.parse(temp);
     }
-    this.pages = pageIterator(this.books, 5);
 }
 
-
 Storage.prototype = {
-    // Paginate storage
-    getPage: function(forward=true) {
-	return forward ? this.pages.next() : this.pages.prev();
-    },
-
     // Add book to storage
     add: function(book) {
 	this.books.push(book);
@@ -85,7 +89,12 @@ Storage.prototype = {
 /**
  * UI Constructor and prototypes
  */
-function UI(){};
+function UI(storage){
+    this.elements = [];
+    this.pages = null;
+    this.currentPage = null;
+    this.currentPageNo = 0;
+};
 
 UI.prototype = {
     alert: function(message, className){
@@ -97,7 +106,7 @@ UI.prototype = {
             alertDiv.classList.remove(className);
             alertDiv.innerHTML = "";
             alertDiv.classList.add("hidden");
-	}, 3000);
+	}, 1500);
     },
 
     // Reload UI from database
@@ -106,10 +115,46 @@ UI.prototype = {
 	    book.date = new Date(book.date);
 	    this.addBook(book, false);
 	});
+	this.pages = pageIterator(this.elements, pageSize);
+	this.currentPage = this.pages.next();
+	this.renderPage();
     },
 
     // Add book to UI
-    addBook: function (book, isNew){
+    addBook: function(book, isNew=true) {
+	const newElement = this.elementFrom(book);
+	this.elements.push(newElement);
+	if (!(this.currentPage?.done ?? true)){
+	    if (pageSize > this.currentPage.value.content.length){
+		this.currentPage.value.content.push(newElement);
+	    }
+	    this.renderPage();
+	}
+	if (isNew) {
+	    this.alert(`'${book.title}' added successfully`,
+		       "alert-success");
+	}
+    },
+
+    renderPage: function(){
+	if (!this.currentPage.done){
+	    bookList.innerHTML = "";
+	    this.currentPage.value.content.forEach((item) => {
+		bookList.appendChild(item);
+	    });
+	    this.currentPageNo =  this.currentPage.value.page;
+	}
+	this.updatePageInfo();
+    },
+
+    updatePageInfo: function(){
+	const pageNo = this.currentPageNo ? this.currentPageNo : 1;
+	const totalPages = Math.floor(this.elements.length / pageSize) +
+	      (this.elements.length % pageSize ? 1 : 0);
+	pageInfo.textContent = `page ${pageNo}/${totalPages}`;
+    },
+
+    elementFrom: function (book){
 	const newRow = document.createElement("tr");
 	newRow.id = `${book.id}`;
 	newRow.innerHTML = `
@@ -120,10 +165,18 @@ UI.prototype = {
         <td><a href="#" class="edit hover-success">&crarr;</td>
         <td><a href="#" class="delete hover-danger">x</td>
     `;
-	bookList.appendChild(newRow);
-	if (isNew) {
-	    this.alert(`'${book.title}' added successfully`,
-		       "alert-success");
+	return(newRow);
+    },
+
+    // load next/prev ui page
+    loadNextPage: function(forward=true){
+	const nextPage = forward ? this.pages.next() : this.pages.prev();
+	if (!nextPage.done){
+	    this.currentPage = nextPage;
+	    this.renderPage();
+	    this.updatePageInfo();
+	} else {
+	    document.location.reload();
 	}
     },
 
@@ -139,17 +192,17 @@ UI.prototype = {
     deleteBook: function(target){
 	target.parentElement.parentElement.remove();
 	this.alert("Book deleted successfully", "alert-success");
-    },
-
-    // validate all entries are non-empty and author has fname & lname
-    function validEntries(title, author, isbn, date){
-	if ([title, author, isbn, date].some(value => !value)){
-            return false;
-	}
-	const authorNames = author.split(" ").filter(Boolean);
-	if (authorNames.length < 2){
-            return false;
-	}
-	return true;
     }
+}
+
+// validate all entries are non-empty and author has fname & lname
+function validEntries(title, author, isbn, date){
+    if ([title, author, isbn, date].some(value => !value)){
+        return false;
+    }
+    const authorNames = author.split(" ").filter(Boolean);
+    if (authorNames.length < 2){
+        return false;
+    }
+    return true;
 }
