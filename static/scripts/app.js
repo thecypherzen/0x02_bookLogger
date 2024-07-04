@@ -45,7 +45,6 @@ bookList.onclick = function (e){
 
 // handle next/prev page click
 next.onclick = function(e){
-    console.log(e.target);
     ui.loadNextPage(true);
     e.preventDefault();
 }

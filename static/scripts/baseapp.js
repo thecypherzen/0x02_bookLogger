@@ -9,7 +9,7 @@ const prev = document.getElementById("prev");
 const next = document.getElementById("next");
 
 
-const pageSize = 4;
+const pageSize = 2;
 
 // page Iterator function
 function pageIterator(arr, size=4) {
@@ -122,16 +122,16 @@ UI.prototype = {
     },
 
     // Reload UI from database
-    reload: function(storage){
+    reload: function(storage, fromStorage=true){
 	console.log("ui reloading... storage: ",storage.books);
-	if (storage.books.length){
+	if (fromStorage && storage.books.length){
 	    storage.books.forEach(book => {
 		book.date = new Date(book.date);
 		this.elements.push(this.elementFrom(book));
 	    });
-	    this.initPages();
-	    this.renderCurrentPage();
 	}
+	this.initPages();
+	this.renderCurrentPage();
     },
 
     // Add book to UI
@@ -139,8 +139,10 @@ UI.prototype = {
 	console.log("adding new book to ui...");
 	console.log("ui elements: ",this.elements);
 	const newElement = this.elementFrom(book);
-	let nowInit = false;
 	this.elements.push(newElement);
+	if (this.elements.length && this.currentPage.done) {
+	    this.initPages();
+	}
 	this.updateCurrentPage(newElement);
 	this.alert(`'${book.title}' added successfully`,
 		   "alert-success");
@@ -207,12 +209,13 @@ UI.prototype = {
     // load next/prev ui page
     loadNextPage: function(forward=true){
 	const nextPage = forward ? this.pages.next() : this.pages.prev();
+	console.log("loading next page....");
 	if (!nextPage.done){
 	    this.currentPage = nextPage;
 	    this.renderCurrentPage();
 	    this.updatePageInfo();
 	    this.updatePageNav();
-	}
+	} else { console.log(`nexpage.done = ${nextPage.done}`) };
     },
 
     // update page navigation
@@ -252,7 +255,39 @@ UI.prototype = {
 
     // delete book from UI
     deleteBook: function(target){
-	target.parentElement.parentElement.remove();
+	const elem = target.parentElement.parentElement;
+	const pageItems = this.currentPage.value.content;
+	this.currentPage.value.content = pageItems.filter((item) =>{
+	    return item.id !== elem.id;
+	});
+	this.elements = this.elements.filter((item) => {
+	    return elem.id !== item.id;
+	});
+	elem.remove();
+	const pageItemsLeft = this.currentPage.value.content.length;
+	console.log(`pg items left:${pageItemsLeft}
+obj items left: ${this.elements.length}`);
+	if (!pageItemsLeft){
+	    const pagesCount = this.totalPageCount();
+	    const prevPage = this.currentPageNo - 1 ;
+	    if (pagesCount) {
+		if (prevPage){
+		console.log(`itemsleft:${this.elements.length},
+pagesCount:${pagesCount}, current page:${this.currentPageNo}
+previous page:${prevPage}`);
+		    this.currentPage = this.pages.prev();
+		    this.currentPage.value.page = prevPage;
+		    this.currentPage.value.pageCount = pagesCount;
+		    console.log(this.currentPage.value.content);
+		    this.renderCurrentPage();
+		} else {
+		    location.reload();
+		}
+	    }
+	    this.updatePageInfo();
+	    this.updatePageNav();
+	}
+	console.log(`this.currentPageNo: ${this.currentPageNo}`);
 	this.alert("Book deleted successfully", "alert-success");
     }
 }
