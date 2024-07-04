@@ -130,7 +130,7 @@ UI.prototype = {
 		this.elements.push(this.elementFrom(book));
 	    });
 	    this.initPages();
-	    this.renderPage();
+	    this.renderCurrentPage();
 	}
     },
 
@@ -141,27 +141,37 @@ UI.prototype = {
 	const newElement = this.elementFrom(book);
 	let nowInit = false;
 	this.elements.push(newElement);
-	if (!this.pages){ this.initPages(); nowInit = true; }
-	console.log("current page ", this.currentPage,
-		   this.currentPage?.content?.length ?? "NA");
-	// add book to current page iff it's not loaded from
-	// storage and pages we're not at end of pages
-	if (!nowInit && !this.currentPage.done){
-	    console.log("ui: adding book element to currenPage...");
-	    if (pageSize > this.currentPage.value.content.length){
-		this.currentPage.value.content.push(newElement);
-	    }
-	}
-	this.renderPage();
+	this.updateCurrentPage();
 	this.alert(`'${book.title}' added successfully`,
 		   "alert-success");
     },
 
     // update update current page
-    // updateCurrentPage: function(book){
-    // }
+    updateCurrentPage: function(bookElement){
+	let nowInit = false
+	// init pages if null
+	if (!this.pages){
+	    this.initPages();
+	    nowInit = true;
+	}
+	// add book element to current page if not full/ended
+	// skip if init happened here.
+	if (!nowInit && !this.currentPage.done){
+	    const currPageLen = this.currentPage.value.content.length;
+	    if (pageSize > currPageLen){
+		this.currentPage.value.content.push(bookElement);
+	    } else {
+		if (this.totalPageCount() > this.currentPageNo) {
+		    this.currentPage = this.pages.next();
+		}
+	    }
+	}
+	this.renderCurrentPage();
+	this.updatePageInfo();
+	this.updatePageNav();
+    },
 
-    renderPage: function(){
+    renderCurrentPage: function(){
 	console.log("rendering page...");
 	if (!this.currentPage.done){
 	    bookList.innerHTML = "";
@@ -199,7 +209,7 @@ UI.prototype = {
 	const nextPage = forward ? this.pages.next() : this.pages.prev();
 	if (!nextPage.done){
 	    this.currentPage = nextPage;
-	    this.renderPage();
+	    this.renderCurrentPage();
 	    this.updatePageInfo();
 	    this.updatePageNav();
 	}
