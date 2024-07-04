@@ -141,7 +141,7 @@ UI.prototype = {
 	const newElement = this.elementFrom(book);
 	let nowInit = false;
 	this.elements.push(newElement);
-	this.updateCurrentPage();
+	this.updateCurrentPage(newElement);
 	this.alert(`'${book.title}' added successfully`,
 		   "alert-success");
     },
