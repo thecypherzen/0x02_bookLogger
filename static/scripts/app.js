@@ -5,6 +5,8 @@ const ui = new UI(db);
 
 // reload books from storage
 document.addEventListener("DOMContentLoaded", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     ui.reload(db);
 });
 
@@ -20,6 +22,7 @@ form.onsubmit = (e) => {
     // ensure all entries
     if (validEntries(title, author, isbn, date)){
 	const book = new Book(title, author, isbn, date);
+	console.log("entries are valid");
 	db.add(book)
 	db.save();
 	ui.addBook(book);
@@ -42,10 +45,13 @@ bookList.onclick = function (e){
 
 // handle next/prev page click
 next.onclick = function(e){
+    console.log(e.target);
     ui.loadNextPage(true);
+    e.preventDefault();
 }
 
 // handle prev page load
 prev.onclick = function(e){
     ui.loadNextPage(false);
+    e.preventDefault();
 }

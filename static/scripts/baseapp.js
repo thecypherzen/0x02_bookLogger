@@ -9,7 +9,7 @@ const prev = document.getElementById("prev");
 const next = document.getElementById("next");
 
 
-const pageSize = 6;
+const pageSize = 4;
 
 // page Iterator function
 function pageIterator(arr, size=4) {
@@ -21,7 +21,7 @@ function pageIterator(arr, size=4) {
             return idx < arr.length ?
                 { value: {
                     page: ++page,
-		    pageCount: arr.length/size +
+		    pageCount: Math.floor(arr.length/size) +
 			(arr.length % size ? 1 : 0),
                     content: arr.slice(idx, idx+=size),
 		    end: idx > size
@@ -32,7 +32,7 @@ function pageIterator(arr, size=4) {
             return --page > 0 ?
                 { value: {
                     page: page,
-		    pageCount: arr.length/size +
+		    pageCount: Math.floor(arr.length/size) +
 			(arr.length % size ? 1 : 0),
                     content: arr.slice(idx-=(2 * size), idx += size),
 		    end: idx > size
@@ -47,6 +47,7 @@ function pageIterator(arr, size=4) {
  * Book Constructor
  */
 function Book(title, author, isbn, date){
+    console.log("creating new book...: ", title);
     this.id = new Date().getTime().toString(36) +
 	Math.random().toString(36).substr(2);
     this.title = title;
@@ -55,8 +56,10 @@ function Book(title, author, isbn, date){
     this.date = new Date(date);
 }
 
+
 // Storage Constructor and prototypes
 function Storage(){
+    console.log("initializing storage...");
     this.db = window.localStorage;
     const temp = this.db.getItem("booksDb") ?? null;
     if (!temp){
@@ -64,16 +67,19 @@ function Storage(){
     } else {
 	this.books = JSON.parse(temp);
     }
+    console.log("   done. books: ", this.books);
 }
 
 Storage.prototype = {
     // Add book to storage
     add: function(book) {
+	console.log("db: adding book: ", book.title);
 	this.books.push(book);
     },
 
     // Save a book to local storage
     save: function() {
+	console.log("db: saving items...");
 	this.db.setItem("booksDb", JSON.stringify(this.books));
     },
 
@@ -93,7 +99,7 @@ function UI(storage){
     this.elements = [];
     this.pages = null;
     this.currentPage = null;
-    this.currentPageNo = 0;
+    this.currentPageNo = 1;
 };
 
 UI.prototype = {
@@ -109,34 +115,54 @@ UI.prototype = {
 	}, 1500);
     },
 
-    // Reload UI from database
-    reload: function(storage){
-	storage.books.forEach(book => {
-	    book.date = new Date(book.date);
-	    this.addBook(book, false);
-	});
+    initPages: function(){
+	console.log("ui: ..initializing pages...");
 	this.pages = pageIterator(this.elements, pageSize);
 	this.currentPage = this.pages.next();
-	this.renderPage();
+    },
+
+    // Reload UI from database
+    reload: function(storage){
+	console.log("ui reloading... storage: ",storage.books);
+	if (storage.books.length){
+	    storage.books.forEach(book => {
+		book.date = new Date(book.date);
+		this.elements.push(this.elementFrom(book));
+	    });
+	    this.initPages();
+	    this.renderPage();
+	}
     },
 
     // Add book to UI
-    addBook: function(book, isNew=true) {
+    addBook: function(book) {
+	console.log("adding new book to ui...");
+	console.log("ui elements: ",this.elements);
 	const newElement = this.elementFrom(book);
+	let nowInit = false;
 	this.elements.push(newElement);
-	if (!(this.currentPage?.done ?? true)){
+	if (!this.pages){ this.initPages(); nowInit = true; }
+	console.log("current page ", this.currentPage,
+		   this.currentPage?.content?.length ?? "NA");
+	// add book to current page iff it's not loaded from
+	// storage and pages we're not at end of pages
+	if (!nowInit && !this.currentPage.done){
+	    console.log("ui: adding book element to currenPage...");
 	    if (pageSize > this.currentPage.value.content.length){
 		this.currentPage.value.content.push(newElement);
 	    }
-	    this.renderPage();
 	}
-	if (isNew) {
-	    this.alert(`'${book.title}' added successfully`,
-		       "alert-success");
-	}
+	this.renderPage();
+	this.alert(`'${book.title}' added successfully`,
+		   "alert-success");
     },
 
+    // update update current page
+    // updateCurrentPage: function(book){
+    // }
+
     renderPage: function(){
+	console.log("rendering page...");
 	if (!this.currentPage.done){
 	    bookList.innerHTML = "";
 	    this.currentPage.value.content.forEach((item) => {
@@ -144,14 +170,14 @@ UI.prototype = {
 	    });
 	    this.currentPageNo =  this.currentPage.value.page;
 	}
+	console.log(this.currentPage);
 	this.updatePageInfo();
+	this.updatePageNav();
     },
 
     updatePageInfo: function(){
-	const pageNo = this.currentPageNo ? this.currentPageNo : 1;
-	const totalPages = Math.floor(this.elements.length / pageSize) +
-	      (this.elements.length % pageSize ? 1 : 0);
-	pageInfo.textContent = `page ${pageNo}/${totalPages}`;
+	const totalPages = this.totalPageCount();
+	pageInfo.textContent = `page ${this.currentPageNo}/${totalPages}`;
     },
 
     elementFrom: function (book){
@@ -175,9 +201,35 @@ UI.prototype = {
 	    this.currentPage = nextPage;
 	    this.renderPage();
 	    this.updatePageInfo();
-	} else {
-	    document.location.reload();
+	    this.updatePageNav();
 	}
+    },
+
+    // update page navigation
+    updatePageNav: function(){
+	if (this.currentPageNo === 1){
+	    prev.className = "pg-inactive";
+	    if (this.elements.length > pageSize){
+		next.className = "pg-active";
+	    } else {
+		next.className = "pg-inactive";
+	    }
+	} else {
+	    prev.className = "pg-active";
+	    if (this.currentPageNo === this.totalPageCount()){
+		next.className = "pg-inactive";
+	    } else {
+		next.className = "pg-active";
+	    }
+	}
+    },
+
+    // get total pages count
+    totalPageCount: function(){
+	const totalElements = this.elements.length;
+	const pageCount = Math.floor(totalElements / pageSize) +
+	      (totalElements % pageSize ? 1 : 0);
+	return pageCount;
     },
 
     // clear fields from UI
