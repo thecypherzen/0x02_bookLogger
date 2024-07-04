@@ -189,7 +189,8 @@ UI.prototype = {
 
     updatePageInfo: function(){
 	const totalPages = this.totalPageCount();
-	pageInfo.textContent = `page ${this.currentPageNo}/${totalPages}`;
+	const currPage = totalPages ? this.currentPageNo : 0;
+	pageInfo.textContent = `page ${currPage}/${totalPages}`;
     },
 
     elementFrom: function (book){
