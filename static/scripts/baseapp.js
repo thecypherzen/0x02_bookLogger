@@ -141,6 +141,7 @@ UI.prototype = {
 	const newElement = this.elementFrom(book);
 	this.elements.push(newElement);
 	if (this.elements.length && this.currentPage.done) {
+	    console.log(this.elements.length);
 	    this.initPages();
 	}
 	this.updateCurrentPage(newElement);
@@ -150,6 +151,7 @@ UI.prototype = {
 
     // update update current page
     updateCurrentPage: function(bookElement){
+	console.log("update current page");
 	let nowInit = false
 	// init pages if null
 	if (!this.pages){
@@ -178,6 +180,7 @@ UI.prototype = {
 	if (!this.currentPage.done){
 	    bookList.innerHTML = "";
 	    this.currentPage.value.content.forEach((item) => {
+		console.log(item);
 		bookList.appendChild(item);
 	    });
 	    this.currentPageNo =  this.currentPage.value.page;
@@ -269,7 +272,7 @@ UI.prototype = {
 	console.log(`pg items left:${pageItemsLeft}
 obj items left: ${this.elements.length}`);
 	if (!pageItemsLeft){
-	    const pagesCount = this.totalPageCount();
+/*	    const pagesCount = this.totalPageCount();
 	    const prevPage = this.currentPageNo - 1 ;
 	    if (pagesCount) {
 		if (prevPage){
@@ -286,7 +289,8 @@ previous page:${prevPage}`);
 		}
 	    }
 	    this.updatePageInfo();
-	    this.updatePageNav();
+	    this.updatePageNav(); */
+	    location.reload();
 	}
 	console.log(`this.currentPageNo: ${this.currentPageNo}`);
 	this.alert("Book deleted successfully", "alert-success");
